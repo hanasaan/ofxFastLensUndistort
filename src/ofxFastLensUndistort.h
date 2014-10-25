@@ -24,7 +24,7 @@ static inline void toFloatArray(const cv::Mat& inputDoubleArray, float* outArray
 static string vertexShader =
 STRINGIFY(
     uniform float camera_matrix[9];
-    uniform float dist_coeffs[5];
+    uniform float dist_coeffs[8];
     uniform float undistorted_camera_matrix[9];
     uniform vec2  tex_scale;
 
@@ -33,6 +33,9 @@ STRINGIFY(
     float p1 = dist_coeffs[2];
     float p2 = dist_coeffs[3];
     float k3 = dist_coeffs[4];
+    float k4 = dist_coeffs[5];
+    float k5 = dist_coeffs[6];
+    float k6 = dist_coeffs[7];
 
     float cx = camera_matrix[2];
     float cy = camera_matrix[5];
@@ -59,7 +62,7 @@ STRINGIFY(
         float r6 = r2 * r2 * r2;
         float _2xy = 2.0 * xy;
 
-        float k_radial = (1.0 + k1*r2 + k2*r4 + k3*r6);
+        float k_radial = (1.0 + k1*r2 + k2*r4 + k3*r6) / (1.0 + k4*r2 + k5*r4 + k6*r6);
 
         float x_d = x * k_radial + (_2xy * p1 + p2 * (r2 + 2.0 * x2));
         float y_d = y * k_radial + (_2xy * p2 + p1 * (r2 + 2.0 * y2));
@@ -87,7 +90,7 @@ class Undistort
 {
 private:
     float distorted_camera_matrix[9];
-    float dist_coeffs[5];
+    float dist_coeffs[8];
     float undistorted_camera_matrix[9];
     int width;
     int height;
@@ -141,6 +144,11 @@ public:
         shader.setupShaderFromSource(GL_VERTEX_SHADER, vertexShader);
         shader.setupShaderFromSource(GL_FRAGMENT_SHADER, fragmentShader);
 		shader.linkProgram();
+        
+        // init
+        std::fill(distorted_camera_matrix, distorted_camera_matrix + 9, 0);
+        std::fill(dist_coeffs, dist_coeffs + 8, 0);
+        std::fill(undistorted_camera_matrix, undistorted_camera_matrix + 9, 0);
     }
     
 #ifdef USE_CV
@@ -182,7 +190,7 @@ public:
         shader.setUniform2f("tex_scale", tex.getWidth() / width, tex.getHeight() / height);
 		shader.setUniform1fv("camera_matrix", distorted_camera_matrix, 9);
 		shader.setUniform1fv("undistorted_camera_matrix", undistorted_camera_matrix, 9);
-		shader.setUniform1fv("dist_coeffs", dist_coeffs, 5);
+		shader.setUniform1fv("dist_coeffs", dist_coeffs, 8);
         mesh.draw();
 		shader.end();
         tex.unbind();
