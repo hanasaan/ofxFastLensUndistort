@@ -78,11 +78,19 @@ STRINGIFY(
 
 static string fragmentShader =
 STRINGIFY(
+    uniform vec2 texsize;
     uniform sampler2DRect tex;
     varying vec2 texcoord;
     void main()
     {
-        gl_FragColor = texture2DRect(tex, texcoord);
+        if (any(notEqual(clamp(texcoord, vec2(0.0, 0.0), texsize) - texcoord, vec2(0.0, 0.0))))
+        {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        }
+        else
+        {
+            gl_FragColor = texture2DRect(tex, texcoord);
+        }
     }
 );
 
@@ -187,6 +195,7 @@ public:
         ofScale(sx, sy);
         tex.bind();
         shader.begin();
+        shader.setUniform2f("texsize", tex.getWidth(), tex.getHeight());
         shader.setUniform2f("tex_scale", tex.getWidth() / width, tex.getHeight() / height);
 		shader.setUniform1fv("camera_matrix", distorted_camera_matrix, 9);
 		shader.setUniform1fv("undistorted_camera_matrix", undistorted_camera_matrix, 9);
