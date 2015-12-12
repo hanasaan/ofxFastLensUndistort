@@ -9,10 +9,10 @@ OFX_FAST_LENS_UNDISTORT_BEGIN_NAMESPACE
 
 #define STRINGIFY(x) #x
 
-#define USE_CV // comment out if you do not use opencv
+// #define DISABLE_CV // uncomment if you do not use opencv
 
 // utility function for converting cv::Mat to float array
-#ifdef USE_CV
+#ifndef DISABLE_CV
 #include "opencv2/opencv.hpp"
 static inline void toFloatArray(const cv::Mat& inputDoubleArray, float* outArray) {
     for (int i=0; i<inputDoubleArray.cols * inputDoubleArray.rows; ++i) {
@@ -159,7 +159,7 @@ public:
         std::fill(undistorted_camera_matrix, undistorted_camera_matrix + 9, 0);
     }
     
-#ifdef USE_CV
+#ifndef DISABLE_CV
     void setCameraMatrix(const cv::Mat& distortedCameraMatrix, const cv::Mat& distortCoeffs, const cv::Mat& undistortedCameraMatrix = cv::Mat())
     {
         toFloatArray(distortedCameraMatrix, distorted_camera_matrix);
