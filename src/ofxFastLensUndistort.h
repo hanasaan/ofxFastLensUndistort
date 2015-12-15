@@ -197,9 +197,9 @@ public:
         shader.begin();
         shader.setUniform2f("texsize", tex.getWidth(), tex.getHeight());
         shader.setUniform2f("tex_scale", tex.getWidth() / width, tex.getHeight() / height);
-		shader.setUniform1fv("camera_matrix", distorted_camera_matrix, 9);
-		shader.setUniform1fv("undistorted_camera_matrix", undistorted_camera_matrix, 9);
-		shader.setUniform1fv("dist_coeffs", dist_coeffs, 8);
+		shader.setUniform1fv("camera_matrix[0]", distorted_camera_matrix, 9);
+		shader.setUniform1fv("undistorted_camera_matrix[0]", undistorted_camera_matrix, 9);
+		shader.setUniform1fv("dist_coeffs[0]", dist_coeffs, 8);
         mesh.draw();
 		shader.end();
         tex.unbind();
