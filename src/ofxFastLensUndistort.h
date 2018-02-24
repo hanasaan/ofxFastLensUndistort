@@ -94,6 +94,91 @@ STRINGIFY(
     }
 );
 
+static string vertexShader150 =
+STRINGIFY(
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 textureMatrix;
+uniform mat4 modelViewProjectionMatrix;
+
+uniform float camera_matrix[9];
+uniform float dist_coeffs[8];
+uniform float undistorted_camera_matrix[9];
+uniform vec2  tex_scale;
+uniform vec2 texsize;
+
+float k1 = dist_coeffs[0];
+float k2 = dist_coeffs[1];
+float p1 = dist_coeffs[2];
+float p2 = dist_coeffs[3];
+float k3 = dist_coeffs[4];
+float k4 = dist_coeffs[5];
+float k5 = dist_coeffs[6];
+float k6 = dist_coeffs[7];
+
+float cx = camera_matrix[2];
+float cy = camera_matrix[5];
+float fx = camera_matrix[0];
+float fy = camera_matrix[4];
+float ucx = undistorted_camera_matrix[2];
+float ucy = undistorted_camera_matrix[5];
+float ufx = undistorted_camera_matrix[0];
+float ufy = undistorted_camera_matrix[4];
+
+in vec4  position;
+in vec4  color;
+in vec3  normal;
+in vec2  texcoord;
+
+out vec2 texCoordVarying;
+
+void main()
+{
+    vec2 out_uv = position.xy;
+    
+    float x = (out_uv.x - ucx) / ufx;
+    float y = (out_uv.y - ucy) / ufy;
+    float xy = x * y;
+    float x2 = x * x;
+    float y2 = y * y;
+    float r2 = x2 + y2;
+    float r4 = r2 * r2;
+    float r6 = r2 * r2 * r2;
+    float _2xy = 2.0 * xy;
+    
+    float k_radial = (1.0 + k1*r2 + k2*r4 + k3*r6) / (1.0 + k4*r2 + k5*r4 + k6*r6);
+    
+    float x_d = x * k_radial + (_2xy * p1 + p2 * (r2 + 2.0 * x2));
+    float y_d = y * k_radial + (_2xy * p2 + p1 * (r2 + 2.0 * y2));
+    
+    float u = fx * x_d + cx;
+    float v = fy * y_d + cy;
+    
+    texCoordVarying = vec2(u, v) / texsize;
+    
+    gl_Position = modelViewProjectionMatrix * position;
+}
+);
+
+static string fragmentShader150 =
+STRINGIFY(
+uniform sampler2D tex;
+uniform vec2 texsize;
+in vec2 texCoordVarying;
+out vec4 fragColor;
+void main()
+{
+    if (any(notEqual(clamp(texCoordVarying, vec2(0.0, 0.0), vec2(1.0, 1.0)) - texCoordVarying, vec2(0.0, 0.0))))
+    {
+        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+    else
+    {
+        fragColor = texture(tex, texCoordVarying);
+    }
+}
+);
+
 class Undistort
 {
 private:
@@ -149,9 +234,23 @@ public:
         }
         
         // setup shader
-        shader.setupShaderFromSource(GL_VERTEX_SHADER, vertexShader);
-        shader.setupShaderFromSource(GL_FRAGMENT_SHADER, fragmentShader);
-		shader.linkProgram();
+        if(ofIsGLProgrammableRenderer()){
+            {
+                ostringstream oss;
+                oss << "#version 150" << endl << vertexShader150;
+                shader.setupShaderFromSource(GL_VERTEX_SHADER, oss.str());
+            }
+            {
+                ostringstream oss;
+                oss << "#version 150" << endl << fragmentShader150;
+                shader.setupShaderFromSource(GL_FRAGMENT_SHADER, oss.str());
+            }
+            shader.linkProgram();
+        } else {
+            shader.setupShaderFromSource(GL_VERTEX_SHADER, vertexShader);
+            shader.setupShaderFromSource(GL_FRAGMENT_SHADER, fragmentShader);
+            shader.linkProgram();
+        }
         
         // init
         std::fill(distorted_camera_matrix, distorted_camera_matrix + 9, 0);
