@@ -284,6 +284,18 @@ public:
         }
     }
     
+    void setCameraMatrixRationalModel(float distortedCameraMatrix[9], float distortCoeffs[8], float* undistortedCameraMatrix = NULL)
+    {
+        std::copy<float*>(distortedCameraMatrix, distortedCameraMatrix + 9, this->distorted_camera_matrix);
+        std::copy<float*>(distortCoeffs, distortCoeffs + 8, this->dist_coeffs);
+        
+        if (undistortedCameraMatrix) {
+            std::copy<float*>(undistortedCameraMatrix, undistortedCameraMatrix + 9, this->undistorted_camera_matrix);
+        } else {
+            std::copy<float*>(distortedCameraMatrix, distortedCameraMatrix + 9, this->undistorted_camera_matrix);
+        }
+    }
+    
     void draw(ofTexture& tex, float  x, float  y, float  w, float  h)
     {
         float sx = w / width;
